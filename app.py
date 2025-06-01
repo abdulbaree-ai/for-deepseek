@@ -851,4 +851,4 @@ def mark_paid(id):
 
 if __name__ == '__main__':
     init_db() # Initialize the database and tables if they don't exist
-    app.run(debug=True, host='0.0.0.0', port=5001) # Changed port for potential conflict avoidance
+    app.run(debug=True, host='0.0.0.0', port=81) # Changed port for potential conflict avoidance
