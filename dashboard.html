@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Dashboard Overview</h2>
+
+    <div class="filters">
+        <form method="get" action="{{ url_for('dashboard') }}">
+            <label for="month_filter">Month:</label>
+            <select id="month_filter" name="month">
+                <option value="all" {% if current_month_filter == 'all' %}selected{% endif %}>All Months</option>
+                {% for m_num in range(1, 13) %}
+                    <option value="{{ '%02d' % m_num }}" {% if current_month_filter == '%02d' % m_num %}selected{% endif %}>
+                        {{ calendar.month_name[m_num] }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <label for="year_filter">Year:</label>
+            <select id="year_filter" name="year">
+                <option value="all" {% if current_year_filter == 'all' %}selected{% endif %}>All Years</option>
+                {% for y in range(datetime.now().year - 5, datetime.now().year + 1) | sort(reverse=True) %}
+                    <option value="{{ y }}" {% if current_year_filter == y|string %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit">Apply Filters</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Reset Filters</a>
+        </form>
+    </div>
+
+    <div class="dashboard-cards">
+        <div class="card">
+            <h3>Total Sales</h3>
+            <div class="value positive">${{ "%.2f"|format(total_sales) }}</div>
+            <div class="period">
+                {% if current_month_filter == 'all' and current_year_filter == 'all' %}All Time
+                {% elif current_month_filter == 'all' %}{{ current_year_filter }}
+                {% elif current_year_filter == 'all' %}{{ calendar.month_name[current_month_filter|int] }} (All Years)
+                {% else %}{{ calendar.month_name[current_month_filter|int] }} {{ current_year_filter }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <h3>Total Expenses</h3>
+            <div class="value negative">${{ "%.2f"|format(total_expenses) }}</div>
+             <div class="period">
+                {% if current_month_filter == 'all' and current_year_filter == 'all' %}All Time
+                {% elif current_month_filter == 'all' %}{{ current_year_filter }}
+                {% elif current_year_filter == 'all' %}{{ calendar.month_name[current_month_filter|int] }} (All Years)
+                {% else %}{{ calendar.month_name[current_month_filter|int] }} {{ current_year_filter }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <h3>Salaries Paid</h3>
+            <div class="value negative">${{ "%.2f"|format(total_salaries) }}</div>
+             <div class="period">
+                {% if current_month_filter == 'all' and current_year_filter == 'all' %}All Time
+                {% elif current_month_filter == 'all' %}{{ current_year_filter }}
+                {% elif current_year_filter == 'all' %}{{ calendar.month_name[current_month_filter|int] }} (All Years)
+                {% else %}{{ calendar.month_name[current_month_filter|int] }} {{ current_year_filter }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <h3>Net Balance</h3>
+            <div class="value {% if net_balance >= 0 %}positive{% else %}negative{% endif %}">
+                ${{ "%.2f"|format(net_balance) }}
+            </div>
+             <div class="period">
+                {% if current_month_filter == 'all' and current_year_filter == 'all' %}All Time
+                {% elif current_month_filter == 'all' %}{{ current_year_filter }}
+                {% elif current_year_filter == 'all' %}{{ calendar.month_name[current_month_filter|int] }} (All Years)
+                {% else %}{{ calendar.month_name[current_month_filter|int] }} {{ current_year_filter }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <img src="{{ chart_url }}" alt="Sales vs Expenses Trend Chart">
+    </div>
+
+    {# NEW: Add a link to the reports page #}
+    <div class="mt-4">
+        <a href="{{ url_for('reports') }}" class="btn btn-info">View Detailed Reports (Weekly/Monthly)</a>
+    </div>
+
+{# NEW: Add a link to the reports page #}
+<div class="mt-4">
+    <a href="{{ url_for('reports') }}" class="btn btn-info">View Detailed Reports (Weekly/Monthly)</a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Salaries Management</h2>
+    
+    <form method="post" action="{{ url_for('salaries') }}">
+        <div class="form-group">
+            <label for="name">Employee Name</label>
+            <input type="text" id="name" name="name" required placeholder="e.g., Jane Doe">
+        </div>
+        <div class="form-group">
+            <label for="role">Role</label>
+            <input type="text" id="role" name="role" required placeholder="e.g., Zookeeper, Manager">
+        </div>
+        <div class="form-group">
+            <label for="month">Month</label>
+            <select id="month" name="month" required>
+                <option value="" disabled selected>Select Month...</option>
+                {% for m_num in range(1, 13) %}
+                    <option value="{{ '%02d' % m_num }}">{{ calendar.month_name[m_num] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="year">Year</label>
+            <input type="number" id="year" name="year" min="{{ datetime.now().year - 10 }}" max="{{ datetime.now().year + 1 }}" value="{{ datetime.now().year }}" required placeholder="YYYY">
+        </div>
+        <div class="form-group">
+            <label for="amount">Amount</label>
+            <input type="number" id="amount" name="amount" min="0.01" step="0.01" required placeholder="e.g., 2500.00">
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status" required>
+                <option value="Pending" selected>Pending</option>
+                <option value="Paid">Paid</option>
+            </select>
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1; text-align: right;">
+             <button type="submit">Add Salary Record</button>
+        </div>
+    </form>
+
+    <h3>Filter Salaries</h3>
+    <div class="filters">
+        <form method="get" action="{{ url_for('salaries') }}">
+            <label for="month_filter">Month:</label>
+            <select id="month_filter" name="month">
+                <option value="all" {% if current_month_filter == 'all' %}selected{% endif %}>All Months</option>
+                 {% for m_num in range(1, 13) %}
+                    <option value="{{ '%02d' % m_num }}" {% if current_month_filter == '%02d' % m_num %}selected{% endif %}>
+                        {{ calendar.month_name[m_num] }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <label for="status_filter">Status:</label>
+            <select id="status_filter" name="status">
+                <option value="all" {% if current_status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                <option value="Pending" {% if current_status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="Paid" {% if current_status_filter == 'Paid' %}selected{% endif %}>Paid</option>
+            </select>
+            
+            <button type="submit">Apply Filters</button>
+            <a href="{{ url_for('salaries') }}" class="btn btn-secondary">Reset Filters</a>
+        </form>
+    </div>
+
+    <h3>Salary Records</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Month</th>
+                <th>Year</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for salary in salaries %}
+                <tr>
+                    <td>{{ salary[1] }}</td> {# Name #}
+                    <td>{{ salary[2] }}</td> {# Role #}
+                    <td>{{ calendar.month_name[salary[3]|int] }}</td> {# Month #}
+                    <td>{{ salary[4] }}</td> {# Year #}
+                    <td>${{ "%.2f"|format(salary[5]) }}</td> {# Amount #}
+                    <td>
+                        <span class="status-{{ salary[6]|lower }}">{{ salary[6] }}</span>
+                    </td> {# Status #}
+                    <td>
+                        {% if salary[6] == 'Pending' %}
+                            <a href="{{ url_for('mark_paid', id=salary[0]) }}" class="btn btn-secondary" style="margin-right: 5px; background-color: var(--success-color);" onclick="return confirm('Mark this salary as Paid?');">Mark Paid</a>
+                        {% endif %}
+                        <a href="{{ url_for('delete_salary', id=salary[0]) }}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this salary record?');">Delete</a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center;">No salary records found for the selected filters.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <style>
+        .status-paid { color: var(--success-color); font-weight: bold; }
+        .status-pending { color: var(--accent-color); font-weight: bold; }
+    </style>
+{% endblock %}

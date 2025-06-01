@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Sales Tracker</h2>
+    
+    <form method="post" action="{{ url_for('sales') }}">
+        <div class="form-group">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" value="{{ datetime.now().strftime('%Y-%m-%d') }}" required>
+        </div>
+        <div class="form-group">
+            <label for="item">Item/Service</label>
+            <select id="item" name="item" required>
+                <option value="" disabled selected>Select Item/Service...</option>
+                <option value="Adult Ticket">Adult Ticket</option>
+                <option value="Child Ticket">Child Ticket</option>
+                <option value="Senior Ticket">Senior Ticket</option>
+                <option value="Membership">Membership</option>
+                <option value="Gift Shop Item">Gift Shop Item</option>
+                <option value="Food & Beverage">Food & Beverage</option>
+                <option value="Special Event Ticket">Special Event Ticket</option>
+                <option value="Donation">Donation</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category" required>
+                <option value="" disabled selected>Select Category...</option>
+                <option value="Tickets">Tickets</option>
+                <option value="Memberships">Memberships</option>
+                <option value="Retail">Retail</option>
+                <option value="Food & Beverage">Food & Beverage</option>
+                <option value="Events">Events</option>
+                <option value="Donations">Donations</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="quantity">Quantity</label>
+            <input type="number" id="quantity" name="quantity" min="0.01" step="any" required placeholder="e.g., 1 or 0.5">
+        </div>
+        <div class="form-group">
+            <label for="price">Price (each)</label>
+            <input type="number" id="price" name="price" min="0" step="0.01" required placeholder="e.g., 15.99">
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1; text-align: right;"> <button type="submit">Add Sale</button>
+        </div>
+    </form>
+
+    <h3>Filter Sales</h3>
+    <div class="filters">
+        <form method="get" action="{{ url_for('sales') }}">
+            <label for="month_filter">Month:</label>
+            <select id="month_filter" name="month">
+                <option value="all" {% if current_month_filter == 'all' %}selected{% endif %}>All Months</option>
+                {% for m_num in range(1, 13) %}
+                    <option value="{{ '%02d' % m_num }}" {% if current_month_filter == '%02d' % m_num %}selected{% endif %}>
+                        {{ calendar.month_name[m_num] }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <label for="category_filter">Category:</label>
+            <select id="category_filter" name="category">
+                <option value="all" {% if current_category_filter == 'all' %}selected{% endif %}>All Categories</option>
+                <option value="Tickets" {% if current_category_filter == 'Tickets' %}selected{% endif %}>Tickets</option>
+                <option value="Memberships" {% if current_category_filter == 'Memberships' %}selected{% endif %}>Memberships</option>
+                <option value="Retail" {% if current_category_filter == 'Retail' %}selected{% endif %}>Retail</option>
+                <option value="Food & Beverage" {% if current_category_filter == 'Food & Beverage' %}selected{% endif %}>Food & Beverage</option>
+                <option value="Events" {% if current_category_filter == 'Events' %}selected{% endif %}>Events</option>
+                <option value="Donations" {% if current_category_filter == 'Donations' %}selected{% endif %}>Donations</option>
+                <option value="Other" {% if current_category_filter == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+            
+            <button type="submit">Apply Filters</button>
+            <a href="{{ url_for('sales') }}" class="btn btn-secondary">Reset Filters</a>
+        </form>
+    </div>
+
+    <h3>Sales Records</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+                <tr>
+                    <td>{{ sale[1] }}</td> {# Date #}
+                    <td>{{ sale[2] }}</td> {# Item #}
+                    <td>{{ sale[3] }}</td> {# Category #}
+                    <td>{{ sale[4] }}</td> {# Quantity #}
+                    <td>${{ "%.2f"|format(sale[5]) }}</td> {# Price #}
+                    <td>${{ "%.2f"|format(sale[6]) }}</td> {# Total #}
+                    <td><a href="{{ url_for('delete_sale', id=sale[0]) }}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this sale?');">Delete</a></td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center;">No sales records found for the selected filters.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
