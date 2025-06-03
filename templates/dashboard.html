@@ -1,38 +1,50 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h2>Dashboard Overview</h2>
+    <div class="dashboard-header mb-8 p-6 bg-gradient-to-r from-primary-green to-green-600 text-white rounded-xl shadow-lg">
+        <h2 class="text-2xl sm:text-3xl font-bold mb-2">
+            Good {{ 'Morning' if current_hour < 12 else ('Afternoon' if current_hour < 18 else 'Evening') }}, Welcome Back!
+        </h2>
+        <p class="text-base sm:text-lg opacity-90">Here's a quick overview of your finances.</p>
+    </div>
 
-    <div class="filters">
-        <form method="get" action="{{ url_for('dashboard') }}">
-            <label for="month_filter">Month:</label>
-            <select id="month_filter" name="month">
-                <option value="all" {% if current_month_filter == 'all' %}selected{% endif %}>All Months</option>
-                {% for m_num in range(1, 13) %}
-                    <option value="{{ '%02d' % m_num }}" {% if current_month_filter == '%02d' % m_num %}selected{% endif %}>
-                        {{ calendar.month_name[m_num] }}
-                    </option>
-                {% endfor %}
-            </select>
+    <div class="filters bg-white p-6 rounded-xl shadow-lg mb-8">
+        <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Filter Overview</h3>
+        <form method="get" action="{{ url_for('dashboard') }}" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+            <div class="col-span-1">
+                <label for="month_filter" class="block text-sm font-medium text-gray-700 mb-1">Month:</label>
+                <select id="month_filter" name="month" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green">
+                    <option value="all" {% if current_month_filter == 'all' %}selected{% endif %}>All Months</option>
+                    {% for m_num in range(1, 13) %}
+                        <option value="{{ '%02d' % m_num }}" {% if current_month_filter == '%02d' % m_num %}selected{% endif %}>
+                            {{ calendar.month_name[m_num] }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
             
-            <label for="year_filter">Year:</label>
-            <select id="year_filter" name="year">
-                <option value="all" {% if current_year_filter == 'all' %}selected{% endif %}>All Years</option>
-                {% for y in range(datetime.now().year - 5, datetime.now().year + 1) | sort(reverse=True) %}
-                    <option value="{{ y }}" {% if current_year_filter == y|string %}selected{% endif %}>{{ y }}</option>
-                {% endfor %}
-            </select>
+            <div class="col-span-1">
+                <label for="year_filter" class="block text-sm font-medium text-gray-700 mb-1">Year:</label>
+                <select id="year_filter" name="year" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green">
+                    <option value="all" {% if current_year_filter == 'all' %}selected{% endif %}>All Years</option>
+                    {% for y in range(datetime.now().year - 5, datetime.now().year + 1) | sort(reverse=True) %}
+                        <option value="{{ y }}" {% if current_year_filter == y|string %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             
-            <button type="submit">Apply Filters</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Reset Filters</a>
+            <div class="col-span-1 flex items-end gap-2">
+                <button type="submit" class="bg-accent-color hover:bg-accent-color/90 text-white font-semibold py-2 px-5 rounded-md shadow-md transition-colors duration-200">Apply Filters</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-5 rounded-md shadow-md transition-colors duration-200">Reset Filters</a>
+            </div>
         </form>
     </div>
 
-    <div class="dashboard-cards">
-        <div class="card">
-            <h3>Total Sales</h3>
-            <div class="value positive">${{ "%.2f"|format(total_sales) }}</div>
-            <div class="period">
+    <div class="dashboard-cards grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="card bg-gradient-to-br from-blue-400 to-blue-600 text-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+            <h3 class="text-lg font-semibold mb-2 opacity-90">Total Sales</h3>
+            <div class="value text-3xl sm:text-4xl font-bold">${{ "%.2f"|format(total_sales) }}</div>
+            <div class="period text-sm opacity-80 mt-2">
                 {% if current_month_filter == 'all' and current_year_filter == 'all' %}All Time
                 {% elif current_month_filter == 'all' %}{{ current_year_filter }}
                 {% elif current_year_filter == 'all' %}{{ calendar.month_name[current_month_filter|int] }} (All Years)
@@ -40,10 +52,10 @@
                 {% endif %}
             </div>
         </div>
-        <div class="card">
-            <h3>Total Expenses</h3>
-            <div class="value negative">${{ "%.2f"|format(total_expenses) }}</div>
-             <div class="period">
+        <div class="card bg-gradient-to-br from-red-400 to-red-600 text-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+            <h3 class="text-lg font-semibold mb-2 opacity-90">Total Expenses</h3>
+            <div class="value text-3xl sm:text-4xl font-bold">${{ "%.2f"|format(total_expenses) }}</div>
+             <div class="period text-sm opacity-80 mt-2">
                 {% if current_month_filter == 'all' and current_year_filter == 'all' %}All Time
                 {% elif current_month_filter == 'all' %}{{ current_year_filter }}
                 {% elif current_year_filter == 'all' %}{{ calendar.month_name[current_month_filter|int] }} (All Years)
@@ -51,10 +63,10 @@
                 {% endif %}
             </div>
         </div>
-        <div class="card">
-            <h3>Salaries Paid</h3>
-            <div class="value negative">${{ "%.2f"|format(total_salaries) }}</div>
-             <div class="period">
+        <div class="card bg-gradient-to-br from-purple-400 to-purple-600 text-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+            <h3 class="text-lg font-semibold mb-2 opacity-90">Salaries Paid</h3>
+            <div class="value text-3xl sm:text-4xl font-bold">${{ "%.2f"|format(total_salaries) }}</div>
+             <div class="period text-sm opacity-80 mt-2">
                 {% if current_month_filter == 'all' and current_year_filter == 'all' %}All Time
                 {% elif current_month_filter == 'all' %}{{ current_year_filter }}
                 {% elif current_year_filter == 'all' %}{{ calendar.month_name[current_month_filter|int] }} (All Years)
@@ -62,12 +74,12 @@
                 {% endif %}
             </div>
         </div>
-        <div class="card">
-            <h3>Net Balance</h3>
-            <div class="value {% if net_balance >= 0 %}positive{% else %}negative{% endif %}">
+        <div class="card bg-gradient-to-br {% if net_balance >= 0 %}from-green-400 to-green-600{% else %}from-orange-400 to-orange-600{% endif %} text-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+            <h3 class="text-lg font-semibold mb-2 opacity-90">Net Balance</h3>
+            <div class="value text-3xl sm:text-4xl font-bold">
                 ${{ "%.2f"|format(net_balance) }}
             </div>
-             <div class="period">
+             <div class="period text-sm opacity-80 mt-2">
                 {% if current_month_filter == 'all' and current_year_filter == 'all' %}All Time
                 {% elif current_month_filter == 'all' %}{{ current_year_filter }}
                 {% elif current_year_filter == 'all' %}{{ calendar.month_name[current_month_filter|int] }} (All Years)
@@ -77,18 +89,173 @@
         </div>
     </div>
 
-    <div class="chart-container">
-        <img src="{{ chart_url }}" alt="Sales vs Expenses Trend Chart">
+    <div class="chart-container bg-white p-6 rounded-xl shadow-lg mb-8">
+        <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Sales vs Expenses Trend {{ chart_title_period }}</h3>
+        <div class="relative h-80">
+            <canvas id="salesExpensesChart"></canvas>
+        </div>
+        {% if not chart_sales_data and not chart_expenses_data %}
+            <p class="mt-4 text-gray-600 text-center">No sales or expenses data available for charting in the selected period.</p>
+        {% endif %}
     </div>
 
-    {# NEW: Add a link to the reports page #}
-    <div class="mt-4">
-        <a href="{{ url_for('reports') }}" class="btn btn-info">View Detailed Reports (Weekly/Monthly)</a>
+    <div class="recent-activity grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Recent Sales</h3>
+            {% if recent_sales %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for sale in recent_sales %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{{ sale[1] }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ sale[2] }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">${{ "%.2f"|format(sale[6]) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-600">No recent sales found.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Recent Expenses</h3>
+            {% if recent_expenses %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for expense in recent_expenses %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{{ expense[1] }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ expense[3] }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">${{ "%.2f"|format(expense[4]) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-600">No recent expenses found.</p>
+            {% endif %}
+        </div>
     </div>
 
-{# NEW: Add a link to the reports page #}
-<div class="mt-4">
-    <a href="{{ url_for('reports') }}" class="btn btn-info">View Detailed Reports (Weekly/Monthly)</a>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const salesChartCtx = document.getElementById('salesExpensesChart');
+            if (salesChartCtx) {
+                const chartLabels = JSON.parse('{{ chart_labels | tojson | safe }}');
+                const salesData = JSON.parse('{{ chart_sales_data | tojson | safe }}');
+                const expensesData = JSON.parse('{{ chart_expenses_data | tojson | safe }}');
 
+                new Chart(salesChartCtx, {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [
+                            {
+                                label: 'Sales',
+                                data: salesData,
+                                borderColor: '#0aad4e', // Primary green
+                                backgroundColor: 'rgba(10, 173, 78, 0.2)',
+                                tension: 0.3,
+                                fill: true,
+                                pointBackgroundColor: '#0aad4e',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: '#0aad4e',
+                            },
+                            {
+                                label: 'Expenses',
+                                data: expensesData,
+                                borderColor: '#e74c3c', // Danger red
+                                backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                                tension: 0.3,
+                                fill: true,
+                                pointBackgroundColor: '#e74c3c',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: '#e74c3c',
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 14
+                                    },
+                                    color: '#333'
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += '$' + context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Period',
+                                    color: '#555'
+                                },
+                                ticks: {
+                                    color: '#666'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Amount ($)',
+                                    color: '#555'
+                                },
+                                ticks: {
+                                    color: '#666',
+                                    callback: function(value, index, values) {
+                                        return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 {% endblock %}
