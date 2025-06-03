@@ -1,185 +1,529 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ data.title }} - Zoo Finance Report</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        /* Add any specific styling for reports here if needed, or rely on style.css */
-        .report-section {
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 1rem;
-        }
-        .report-section:last-child {
-            border-bottom: none;
-        }
-        .report-header {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .report-header h2 {
-            margin-top: 0;
-            color: var(--primary-color);
-        }
-        .report-table th, .report-table td {
-            padding: 12px;
-            vertical-align: top;
-            border-top: 1px solid #dee2e6;
-        }
-        .report-table th {
-            background-color: var(--secondary-color);
-            color: var(--primary-color);
-        }
-        .text-right {
-            text-align: right;
-        }
-        .positive { color: var(--primary-color); }
-        .negative { color: var(--danger-color); }
-    </style>
-</head>
-<body>
-    <div class="container mt-4">
-        <h1 class="mb-4">{{ data.title }}</h1>
+{% extends "base.html" %}
 
-        <div class="report-header">
-            <p><strong>Period:</strong> {{ data.period|capitalize }}</p>
-            <p><strong>Year:</strong> {{ data.year }}</p>
+{% block content %}
+    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Financial Reports</h2>
+
+    {# Flash Messages with Flowbite Alert #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div id="alert-{{ loop.index }}" class="flex items-center p-4 mb-4 text-sm rounded-lg {% if category == 'success' %}bg-green-50 text-green-800 dark:bg-gray-800 dark:text-green-400{% elif category == 'danger' %}bg-red-50 text-red-800 dark:bg-gray-800 dark:text-red-400{% elif category == 'warning' %}bg-yellow-50 text-yellow-800 dark:bg-gray-800 dark:text-yellow-400{% else %}bg-blue-50 text-blue-800 dark:bg-gray-800 dark:text-blue-400{% endif %}" role="alert">
+                    <svg class="flex-shrink-0 w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                    </svg>
+                    <span class="sr-only">Info</span>
+                    <div class="ms-3 text-sm font-medium">
+                        {{ message }}
+                    </div>
+                    <button type="button" class="ms-auto -mx-1.5 -my-1.5 bg-transparent text-gray-500 rounded-lg focus:ring-2 focus:ring-gray-400 p-1.5 hover:bg-gray-200 inline-flex items-center justify-center h-8 w-8 dark:text-gray-600 dark:hover:bg-gray-700" data-dismiss-target="#alert-{{ loop.index }}" aria-label="Close">
+                        <span class="sr-only">Dismiss</span>
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+        <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Generate Basic Weekly/Monthly Summary</h3>
+        <form method="POST" action="{{ url_for('reports') }}" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="col-span-1">
+                <label for="report_type_old" class="block text-sm font-medium text-gray-700 mb-1">Report Type:</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="report_type_old" name="report_type" onchange="toggleReportOptions()">
+                    <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>Monthly Summary (Basic)</option>
+                    <option value="weekly" {% if report_type == 'weekly' %}selected{% endif %}>Weekly Summary (Basic)</option>
+                </select>
+            </div>
+
+            <div id="monthly_options" class="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6" style="display: {% if report_type == 'monthly' %}grid{% else %}none{% endif %};">
+                <div>
+                    <label for="month_select" class="block text-sm font-medium text-gray-700 mb-1">Select Month:</label>
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="month_select" name="month_select">
+                        {% for month in months %}
+                            <option value="{{ month.num }}" {% if month.num == current_month %}selected{% endif %}>{{ month.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="year_select" class="block text-sm font-medium text-gray-700 mb-1">Select Year:</label>
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="year_select" name="year_select">
+                        {% for y in years %}
+                            <option value="{{ y }}" {% if y|string == current_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div id="weekly_options" class="col-span-full" style="display: {% if report_type == 'weekly' %}block{% else %}none{% endif %};">
+                <div>
+                    <label for="week_range_picker" class="block text-sm font-medium text-gray-700 mb-1">Select Week Range:</label>
+                    <input type="text" id="week_range_picker" placeholder="Select start and end date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green">
+                    {# Hidden inputs to store the actual dates for Flask #}
+                    <input type="hidden" id="week_start_date_hidden" name="week_start_date">
+                    <input type="hidden" id="week_end_date_hidden" name="week_end_date">
+                    <small class="text-xs text-gray-500 mt-1 block">Select a date range for the weekly summary.</small>
+                </div>
+            </div>
+
+            <div class="col-span-full flex justify-end">
+                <button type="submit" class="bg-primary-green hover:bg-primary-green/90 text-white font-semibold py-2 px-5 rounded-md shadow-md transition-colors duration-200">Generate Basic Report</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+        <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Generate Detailed Reports (Financial, Category, Salaries)</h3>
+        <form method="POST" action="{{ url_for('generate_report') }}" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="col-span-1">
+                <label for="detailed_report_type" class="block text-sm font-medium text-gray-700 mb-1">Report Type:</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="detailed_report_type" name="report_type" required onchange="toggleDetailedReportOptions()">
+                    <option value="">Select a report...</option>
+                    <option value="financial_summary" {% if report_type == 'financial_summary' %}selected{% endif %}>Financial Summary</option>
+                    <option value="category_breakdown" {% if report_type == 'category_breakdown' %}selected{% endif %}>Category Breakdown</option>
+                    <option value="staff_salaries" {% if report_type == 'staff_salaries' %}selected{% endif %}>Staff Salaries</option>
+                </select>
+            </div>
+
+            <div class="col-span-1">
+                <label for="period" class="block text-sm font-medium text-gray-700 mb-1">Period:</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="period" name="period" required onchange="togglePeriodOptions()">
+                    <option value="monthly" {% if current_period_filter == 'monthly' %}selected{% endif %}>Monthly</option>
+                    <option value="annual" {% if current_period_filter == 'annual' %}selected{% endif %}>Annual</option>
+                </select>
+            </div>
+
+            <div id="detailed_month_year_options" class="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="detailed_month" class="block text-sm font-medium text-gray-700 mb-1">Select Month:</label>
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="detailed_month" name="month">
+                        {% for m_num in range(1, 13) %}
+                            <option value="{{ '%02d' % m_num }}" {% if '%02d' % m_num == current_month_filter %}selected{% endif %}>
+                                {{ calendar.month_name[m_num] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="detailed_year" class="block text-sm font-medium text-gray-700 mb-1">Select Year:</label>
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="detailed_year" name="year">
+                        {% for y in years %}
+                            <option value="{{ y }}" {% if y|string == current_year_filter %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+             <div id="detailed_annual_year_options" class="col-span-full" style="display: none;">
+                <div>
+                    <label for="annual_year_select" class="block text-sm font-medium text-gray-700 mb-1">Select Year:</label>
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="annual_year_select" name="year">
+                        <option value="all" {% if current_year_filter == 'all' %}selected{% endif %}>All Years</option>
+                        {% for y in years %}
+                            <option value="{{ y }}" {% if y|string == current_year_filter %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-span-1">
+                <label for="format" class="block text-sm font-medium text-gray-700 mb-1">Output Format:</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-green focus:border-primary-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-green dark:focus:border-primary-green" id="format" name="format" required>
+                    <option value="html" selected>HTML (View in Browser)</option>
+                    <option value="csv">CSV (Download)</option>
+                    <option value="pdf">PDF (Not fully implemented)</option>
+                </select>
+            </div>
+
+            <div class="col-span-full flex justify-end">
+                <button type="submit" class="bg-success-green hover:bg-success-green/90 text-white font-semibold py-2 px-5 rounded-md shadow-md transition-colors duration-200">Generate Detailed Report</button>
+            </div>
+        </form>
+    </div>
+
+    {% if report_data %}
+        <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 mt-8 mb-4">Report Details (Basic Weekly/Monthly)</h2>
+        <div class="overflow-x-auto rounded-lg shadow-md mb-6">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales ($)</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Expenses ($)</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Salaries ($)</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Net Balance ($)</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in report_data %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ item.period }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">${{ "{:,.2f}".format(item.sales) }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">${{ "{:,.2f}".format(item.expenses) }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                            {% if item.salaries is string %}
+                                {{ item.salaries }}
+                            {% else %}
+                                ${{ "{:,.2f}".format(item.salaries) }}
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold {% if item.net_balance < 0 %}text-danger-red{% else %}text-primary-green{% endif %}">
+                            ${{ "{:,.2f}".format(item.net_balance) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% elif report_type == 'category_breakdown' and data is defined and data.sales_chart_data is defined %}
+        <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 mt-8 mb-4">Category Breakdown Report</h2>
+        <div class="bg-gray-50 p-4 rounded-lg mb-6 shadow-sm">
+            <p class="text-sm text-gray-700 mb-1"><strong>Period:</strong> {{ data.period|capitalize }}</p>
+            <p class="text-sm text-gray-700 mb-1"><strong>Year:</strong> {% if data.year == 'all' %}All Years{% else %}{{ data.year }}{% endif %}</p>
             {% if data.month %}
-                <p><strong>Month:</strong> {{ calendar.month_name[data.month|int] }}</p>
+                <p class="text-sm text-gray-700"><strong>Month:</strong> {{ calendar.month_name[data.month|int] }}</p>
             {% endif %}
         </div>
 
-        {% if data.title == 'Financial Summary Report' %}
-            <div class="report-section">
-                <h2>Summary</h2>
-                <table class="table table-bordered table-striped report-table">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th>Period</th>
-                            <th class="text-right">Sales ($)</th>
-                            <th class="text-right">Expenses ($)</th>
-                            <th class="text-right">Salaries Paid ($)</th>
-                            <th class="text-right">Net Balance ($)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in data.data %}
-                            <tr>
-                                <td>{{ row[0] }}</td>
-                                <td class="text-right">{{ "{:,.2f}".format(row[1] or 0) }}</td>
-                                <td class="text-right">{{ "{:,.2f}".format(row[2] or 0) }}</td>
-                                <td class="text-right">{{ "{:,.2f}".format(row[3] or 0) }}</td>
-                                <td class="text-right font-weight-bold {% if (row[1] - (row[2] + row[3])) < 0 %}text-danger{% else %}text-success{% endif %}">
-                                    {{ "{:,.2f}".format(row[1] - (row[2] + row[3])) }}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% if not data.data %}<p>No financial summary data found for the selected period.</p>{% endif %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Sales by Category</h3>
+                <div class="relative h-64">
+                    <canvas id="salesCategoryChart"></canvas>
+                </div>
+                {% if not data.sales_chart_data %}
+                    <p class="mt-4 text-gray-600 text-center">No sales data for this period.</p>
+                {% endif %}
             </div>
-
-        {% elif data.title == 'Category Breakdown Report' %}
-            <div class="report-section">
-                <h2>Sales by Category</h2>
-                <table class="table table-bordered table-striped report-table">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th>Category</th>
-                            <th class="text-right">Amount ($)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in data.sales %}
-                            <tr>
-                                <td>{{ row[0] }}</td>
-                                <td class="text-right">{{ "{:,.2f}".format(row[1] or 0) }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% if not data.sales %}<p>No sales data by category found for the selected period.</p>{% endif %}
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Expenses by Category</h3>
+                <div class="relative h-64">
+                    <canvas id="expensesCategoryChart"></canvas>
+                </div>
+                {% if not data.expenses_chart_data %}
+                    <p class="mt-4 text-gray-600 text-center">No expenses data for this period.</p>
+                {% endif %}
             </div>
-
-            <div class="report-section">
-                <h2>Expenses by Category</h2>
-                <table class="table table-bordered table-striped report-table">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th>Category</th>
-                            <th class="text-right">Amount ($)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in data.expenses %}
-                            <tr>
-                                <td>{{ row[0] }}</td>
-                                <td class="text-right">{{ "{:,.2f}".format(row[1] or 0) }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% if not data.expenses %}<p>No expenses data by category found for the selected period.</p>{% endif %}
-            </div>
-
-        {% elif data.title == 'Staff Salaries Report' %}
-            <div class="report-section">
-                <h2>Staff Salaries</h2>
-                <table class="table table-bordered table-striped report-table">
-                    <thead class="thead-dark">
-                        {% if data.period == 'monthly' %}
-                            <tr>
-                                <th>Name</th>
-                                <th>Role</th>
-                                <th class="text-right">Amount ($)</th>
-                                <th>Status</th>
-                            </tr>
-                        {% else %} {# Annual #}
-                            <tr>
-                                <th>Name</th>
-                                <th>Role</th>
-                                <th class="text-right">Annual Total ($)</th>
-                                <th class="text-right">Paid Months</th>
-                                <th class="text-right">Pending Months</th>
-                            </tr>
-                        {% endif %}
-                    </thead>
-                    <tbody>
-                        {% for row in data.data %}
-                            {% if data.period == 'monthly' %}
-                                <tr>
-                                    <td>{{ row[0] }}</td>
-                                    <td>{{ row[1] }}</td>
-                                    <td class="text-right">{{ "{:,.2f}".format(row[2] or 0) }}</td>
-                                    <td>{{ row[3] }}</td>
-                                </tr>
-                            {% else %} {# Annual #}
-                                <tr>
-                                    <td>{{ row[0] }}</td>
-                                    <td>{{ row[1] }}</td>
-                                    <td class="text-right">{{ "{:,.2f}".format(row[2] or 0) }}</td>
-                                    <td class="text-right">{{ row[3] or 0 }}</td>
-                                    <td class="text-right">{{ row[4] or 0 }}</td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% if not data.data %}<p>No staff salaries data found for the selected period.</p>{% endif %}
-            </div>
-        {% endif %}
-
-        <div style="margin-top: 20px;">
-            <a href="{{ url_for('reports') }}" class="btn btn-secondary">Back to Reports Selection</a>
-            {# These links will trigger downloads for the same report with the selected parameters #}
-            <a href="{{ url_for('generate_report', report_type=data.title.lower().replace(' ', '_'), period=data.period, year=data.year, month=(data.month if data.month else ''), format='pdf') }}" class="btn btn-info">Download PDF</a>
-            <a href="{{ url_for('generate_report', report_type=data.title.lower().replace(' ', '_'), period=data.period, year=data.year, month=(data.month if data.month else ''), format='csv') }}" class="btn btn-info">Download CSV</a>
         </div>
+
+        {# Display table data below charts for accessibility/detail #}
+        <div class="mb-8">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Sales by Category (Table)</h3>
+            <div class="overflow-x-auto rounded-lg shadow-md mb-6">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for row in data.sales_table_data %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row[0] }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">${{ "{:,.2f}".format(row[1] or 0) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if not data.sales_table_data %}<p class="mt-4 text-gray-600">No sales data by category found for the selected period.</p>{% endif %}
+            </div>
+        </div>
+
+        <div>
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Expenses by Category (Table)</h3>
+            <div class="overflow-x-auto rounded-lg shadow-md mb-6">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for row in data.expenses_table_data %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row[0] }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">${{ "{:,.2f}".format(row[1] or 0) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if not data.expenses_table_data %}<p class="mt-4 text-gray-600">No expenses data by category found for the selected period.</p>{% endif %}
+            </div>
+        </div>
+
+    {% elif report_type == 'staff_salaries' and data is defined and data.data is defined %}
+        <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 mt-8 mb-4">Staff Salaries Report</h2>
+        <div class="bg-gray-50 p-4 rounded-lg mb-6 shadow-sm">
+            <p class="text-sm text-gray-700 mb-1"><strong>Period:</strong> {{ data.period|capitalize }}</p>
+            <p class="text-sm text-gray-700 mb-1"><strong>Year:</strong> {% if data.year == 'all' %}All Years{% else %}{{ data.year }}{% endif %}</p>
+            {% if data.month %}
+                <p class="text-sm text-gray-700"><strong>Month:</strong> {{ calendar.month_name[data.month|int] }}</p>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto rounded-lg shadow-md mb-6">
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Staff Salaries</h3>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    {% if data.period == 'monthly' %}
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount ($)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    {% else %} {# Annual #}
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Annual Total ($)</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Months</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Pending Months</th>
+                        </tr>
+                    {% endif %}
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for row in data.data %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ row[0] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row[1] }}</td>
+                            {% if data.period == 'monthly' %}
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">${{ "{:,.2f}".format(row[2] or 0) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row[3] }}</td>
+                            {% else %} {# Annual #}
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">${{ "{:,.2f}".format(row[2] or 0) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{{ row[3] or 0 }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{{ row[4] or 0 }}</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if not data.data %}<p class="mt-4 text-gray-600">No staff salaries data found for the selected period.</p>{% endif %}
+        </div>
+    {% else %}
+        <p class="mt-4 text-gray-600">Select a report type and period above to generate a report.</p>
+    {% endif %}
+
+    <div class="flex flex-wrap gap-4 mt-6">
+        <a href="{{ url_for('reports') }}" class="bg-gray-300 hover:bg-gray-400 text-text-dark font-semibold py-2 px-5 rounded-md shadow-md transition-colors duration-200">Back to Reports Selection</a>
+        {# Only show download buttons if a detailed report is actually displayed #}
+        {% if data is defined and report_type != 'monthly' and report_type != 'weekly' %}
+            <a href="{{ url_for('generate_report', report_type=report_type, period=data.period, year=data.year, month=(data.month if data.month else ''), format='pdf') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-5 rounded-md shadow-md transition-colors duration-200">Download PDF</a>
+            <a href="{{ url_for('generate_report', report_type=report_type, period=data.period, year=data.year, month=(data.month if data.month else ''), format='csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-5 rounded-md shadow-md transition-colors duration-200">Download CSV</a>
+        {% endif %}
     </div>
-</body>
-</html>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
+    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+
+    <script>
+        function toggleReportOptions() {
+            var reportType = document.getElementById('report_type_old').value;
+            var monthlyOptions = document.getElementById('monthly_options');
+            var weeklyOptions = document.getElementById('weekly_options');
+
+            if (reportType === 'monthly') {
+                monthlyOptions.style.display = 'grid'; // Use 'grid' for grid layout
+                weeklyOptions.style.display = 'none';
+            } else if (reportType === 'weekly') {
+                monthlyOptions.style.display = 'block';
+                weeklyOptions.style.display = 'block'; // Ensure weekly options are visible
+            }
+        }
+
+        function toggleDetailedReportOptions() {
+            togglePeriodOptions(); // Call togglePeriodOptions to update month/year visibility
+            var detailedReportType = document.getElementById('detailed_report_type').value;
+            // Hide all detailed report sections initially
+            if (document.getElementById('financial_summary_report_section')) {
+                document.getElementById('financial_summary_report_section').style.display = 'none';
+            }
+            if (document.getElementById('category_breakdown_report_section')) {
+                document.getElementById('category_breakdown_report_section').style.display = 'none';
+            }
+            if (document.getElementById('staff_salaries_report_section')) {
+                document.getElementById('staff_salaries_report_section').style.display = 'none';
+            }
+            
+            // Show the relevant section based on selected report type
+            if (detailedReportType === 'financial_summary' && document.getElementById('financial_summary_report_section')) {
+                document.getElementById('financial_summary_report_section').style.display = 'block';
+            } else if (detailedReportType === 'category_breakdown' && document.getElementById('category_breakdown_report_section')) {
+                document.getElementById('category_breakdown_report_section').style.display = 'block';
+            } else if (detailedReportType === 'staff_salaries' && document.getElementById('staff_salaries_report_section')) {
+                document.getElementById('staff_salaries_report_section').style.display = 'block';
+            }
+        }
+
+        function togglePeriodOptions() {
+            var periodType = document.getElementById('period').value;
+            var detailedMonthYearOptions = document.getElementById('detailed_month_year_options');
+            var detailedAnnualYearOptions = document.getElementById('detailed_annual_year_options');
+
+            if (periodType === 'monthly') {
+                detailedMonthYearOptions.style.display = 'grid'; // Use 'grid' for grid layout
+                detailedAnnualYearOptions.style.display = 'none';
+                document.getElementById('detailed_month').name = 'month'; // Ensure month is submitted
+                document.getElementById('detailed_year').name = 'year'; // Ensure year is submitted
+                document.getElementById('annual_year_select').name = ''; // Clear annual year name
+            } else if (periodType === 'annual') {
+                detailedMonthYearOptions.style.display = 'none';
+                detailedAnnualYearOptions.style.display = 'block';
+                document.getElementById('annual_year_select').name = 'year'; // Ensure annual year is submitted
+                document.getElementById('detailed_month').name = ''; // Clear month name
+                document.getElementById('detailed_year').name = ''; // Clear detailed year name
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial setup for basic report filters
+            toggleReportOptions();
+
+            // Initial setup for detailed report filters and display
+            togglePeriodOptions(); // Set initial state for month/year dropdowns based on period
+            toggleDetailedReportOptions(); // Set initial display for report sections
+
+            // Initialize Litepicker for weekly report
+            const weekRangePicker = document.getElementById('week_range_picker');
+            const weekStartDateHidden = document.getElementById('week_start_date_hidden');
+            const weekEndDateHidden = document.getElementById('week_end_date_hidden');
+
+            if (weekRangePicker) {
+                const picker = new Litepicker({
+                    element: weekRangePicker,
+                    singleMode: false, // Enable range selection
+                    format: 'YYYY-MM-DD',
+                    setup: (picker) => {
+                        picker.on('selected', (date1, date2) => {
+                            if (date1 && date2) {
+                                weekStartDateHidden.value = date1.format('YYYY-MM-DD');
+                                weekEndDateHidden.value = date2.format('YYYY-MM-DD');
+                            } else {
+                                weekStartDateHidden.value = '';
+                                weekEndDateHidden.value = '';
+                            }
+                        });
+                    }
+                });
+            }
+
+
+            // Chart.js for Category Breakdown
+            const salesChartCtx = document.getElementById('salesCategoryChart');
+            const expensesChartCtx = document.getElementById('expensesCategoryChart');
+
+            // Only attempt to draw charts if the canvas elements exist AND data is present
+            if (salesChartCtx && {{ (data.sales_chart_data is defined and data.sales_chart_data | length > 0) | tojson | safe }}) {
+                const salesLabels = JSON.parse('{{ data.sales_chart_labels | tojson | safe }}');
+                const salesData = JSON.parse('{{ data.sales_chart_data | tojson | safe }}');
+                
+                new Chart(salesChartCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: salesLabels,
+                        datasets: [{
+                            data: salesData,
+                            backgroundColor: [
+                                '#6366f1', // primary-blue
+                                '#0aad4e', // primary-green
+                                '#ff914d', // accent-orange
+                                '#3498db', // A blue for variety
+                                '#9b59b6', // A purple for variety
+                                '#f1c40f', // A yellow for variety
+                                '#e74c3c', // danger-red
+                            ],
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: '#404040', // gray-700
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += '$' + context.parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (expensesChartCtx && {{ (data.expenses_chart_data is defined and data.expenses_chart_data | length > 0) | tojson | safe }}) {
+                const expensesLabels = JSON.parse('{{ data.expenses_chart_labels | tojson | safe }}');
+                const expensesData = JSON.parse('{{ data.expenses_chart_data | tojson | safe }}');
+
+                new Chart(expensesChartCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: expensesLabels,
+                        datasets: [{
+                            data: expensesData,
+                            backgroundColor: [
+                                '#e74c3c', // danger-red
+                                '#ff914d', // accent-orange
+                                '#6366f1', // primary-blue
+                                '#9b59b6', // A purple for variety
+                                '#f1c40f', // A yellow for variety
+                                '#3498db', // A blue for variety
+                                '#0aad4e', // primary-green
+                            ],
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: '#404040', // gray-700
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += '$' + context.parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+{% endblock %}
